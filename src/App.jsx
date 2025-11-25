@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Users, PlusCircle, LayoutDashboard, LogOut } from 'lucide-react';
-import { supabase } from './supabaseClient'; // Importante para checar login
+import { Users, PlusCircle, LayoutDashboard, LogOut, Calendar } from 'lucide-react'; // Importei Calendar
+import { supabase } from './supabaseClient';
 
 // Componentes
 import Login from "./components/Login";
@@ -8,39 +8,22 @@ import PatientForm from "./components/PatientForm";
 import PatientList from "./components/PatientList";
 import PatientDetails from "./components/PatientDetails";
 import Dashboard from "./components/Dashboard";
+import Scheduler from "./components/Scheduler"; // Importei o Scheduler
 
 function App() {
-  const [session, setSession] = useState(null); // Guarda a sessão do usuário
+  const [session, setSession] = useState(null);
   const [currentView, setCurrentView] = useState('dashboard');
   const [selectedPatientId, setSelectedPatientId] = useState(null);
 
-  // Efeito para verificar login ao carregar a página
   useEffect(() => {
-    // 1. Pega sessão atual
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-    });
-
-    // 2. Escuta mudanças (Login ou Logout)
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
+    supabase.auth.getSession().then(({ data: { session } }) => { setSession(session); });
+    const { data: { subscription }, } = supabase.auth.onAuthStateChange((_event, session) => { setSession(session); });
     return () => subscription.unsubscribe();
   }, []);
 
-  // Função de Logout
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    // O estado 'session' vai mudar automaticamente pelo listener acima e voltará pro Login
-  };
+  const handleLogout = async () => { await supabase.auth.signOut(); };
 
-  // ------------------------------------------
-  // LÓGICA DE NAVEGAÇÃO
-  // ------------------------------------------
-  
+  // Lógica de navegação
   const handleSelectPatient = (id) => {
     setSelectedPatientId(id);
     setCurrentView('details');
@@ -54,6 +37,7 @@ function App() {
   const renderContent = () => {
     switch (currentView) {
       case 'dashboard': return <Dashboard onNavigate={setCurrentView} />;
+      case 'scheduler': return <Scheduler onNavigateToPatient={handleSelectPatient} />; // <--- Passando a função
       case 'details': return selectedPatientId ? <PatientDetails patientId={selectedPatientId} onBack={handleBackToList} /> : <Dashboard onNavigate={setCurrentView} />;
       case 'form': return <PatientForm />;
       case 'list': default: return <PatientList onSelectPatient={handleSelectPatient} />;
@@ -69,20 +53,14 @@ function App() {
     </button>
   );
 
-  // ------------------------------------------
-  // RENDERIZAÇÃO FINAL
-  // ------------------------------------------
-
-  // SE NÃO TIVER SESSÃO, MOSTRA TELA DE LOGIN
   if (!session) {
     return <Login />;
   }
 
-  // SE TIVER SESSÃO, MOSTRA O SISTEMA
   return (
     <div className="flex min-h-screen bg-vitum-light">
       
-      {/* Sidebar */}
+      {/* Sidebar Desktop */}
       <aside className="w-64 bg-white border-r border-vitum-border hidden md:flex flex-col justify-between">
         <div>
           <div className="p-6 border-b border-vitum-border">
@@ -93,6 +71,7 @@ function App() {
           </div>
           <nav className="p-4 space-y-2">
             <MenuButton id="dashboard" icon={LayoutDashboard} label="Visão Geral" />
+            <MenuButton id="scheduler" icon={Calendar} label="Agenda" /> {/* <--- NOVO BOTÃO */}
             <MenuButton id="list" icon={Users} label="Pacientes" />
             <MenuButton id="form" icon={PlusCircle} label="Novo Cadastro" />
           </nav>
@@ -118,7 +97,9 @@ function App() {
         {/* Menu Mobile */}
         <div className="md:hidden p-4 bg-white border-b border-vitum-border flex justify-between items-center sticky top-0 z-10">
            <span className="font-bold text-xl text-vitum-dark">vitum</span>
-           <button onClick={handleLogout} className="text-red-500"><LogOut size={20}/></button>
+           <button onClick={() => setCurrentView('scheduler')} className={currentView === 'scheduler' ? "text-vitum-primary" : "text-gray-600"}><Calendar size={20}/></button>
+           <button onClick={() => setCurrentView('list')} className={currentView === 'list' ? "text-vitum-primary" : "text-gray-600"}><Users size={20}/></button>
+           <button onClick={() => setCurrentView('form')} className={currentView === 'form' ? "text-vitum-primary" : "text-gray-600"}><PlusCircle size={20}/></button>
         </div>
         
         {renderContent()}
