@@ -1,0 +1,11 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* Regra global para garantir a fonte Inter e o fundo padrão */
+body {
+  @apply font-sans bg-vitum-light text-vitum-dark;
+}
