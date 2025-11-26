@@ -60,7 +60,7 @@ const PatientDetails = ({ patientId, onBack }) => {
     }
   };
   
-  // NOVO: Função para alterar o status de ativo/inativo
+  // Função para alterar o status de ativo/inativo (Mantida)
   const handleToggleActiveStatus = async () => {
       const newStatus = !patient.is_active;
       const confirmMessage = newStatus 
@@ -79,7 +79,7 @@ const PatientDetails = ({ patientId, onBack }) => {
           if (error) throw error;
 
           alert(`Paciente ${newStatus ? 'reativado' : 'inativado'} com sucesso!`);
-          fetchData(); // Recarrega os dados para mostrar o novo status
+          fetchData(); 
       } catch (error) {
           alert("Erro ao alterar status: " + error.message);
       } finally {
@@ -87,32 +87,59 @@ const PatientDetails = ({ patientId, onBack }) => {
       }
   };
 
-  // NOVO: Função para deletar PERMANENTEMENTE (aviso de perda de dados)
+  // NOVO CÓDIGO: Deleção em Cascata (Deleta todos os filhos antes da mãe)
   const handleDeletePatient = async () => {
-      if (!window.confirm(`AVISO CRÍTICO: Deletar ${patient.full_name} apagará PERMANENTEMENTE:
-      1. O registro do paciente.
-      2. Toda a Anamnese e Evoluções Clínicas.
-      3. Todos os Pacotes e Agendamentos ligados a ele.
-      
-      Recomendamos INATIVAR, não DELETAR. Deseja DELETAR PERMANENTEMENTE?`)) return;
+      if (!window.confirm(`AVISO CRÍTICO: Deletar ${patient.full_name} apagará PERMANENTEMENTE TODOS os dados relacionados (Agendamentos, Transações, Histórico Clínico). Deseja DELETAR PERMANENTEMENTE?`)) return;
 
       setLoading(true);
       try {
-          const { error } = await supabase
+          // Array das tabelas filhas para garantir que os dados sejam apagados antes da tabela 'patients'
+          const tablesToDeleteFrom = [
+              'transactions',         // 1. Financeiro
+              'class_enrollments',    // 2. Matrículas em Turmas
+              'patient_packages',     // 3. Pacotes/Planos
+              'clinical_evolutions',  // 4. Evoluções
+              'patient_anamnesis',    // 5. Anamnese
+              'appointments',         // 6. Agendamentos
+          ];
+          
+          let successCount = 0;
+          let failureCount = 0;
+
+          // Deleta todos os registros relacionados em cada tabela
+          for (const table of tablesToDeleteFrom) {
+              const { error } = await supabase.from(table).delete().eq('patient_id', patientId);
+              if (error) {
+                  console.error(`Falha ao deletar dados de ${table}:`, error);
+                  failureCount++;
+              } else {
+                  successCount++;
+              }
+          }
+          
+          // 7. Finalmente, deleta o Paciente (A MÃE)
+          const { error: patientDeleteError } = await supabase
               .from('patients')
               .delete()
               .eq('id', patientId);
 
-          if (error) throw error;
+          if (patientDeleteError) throw patientDeleteError;
           
-          alert("Paciente deletado permanentemente.");
+          if (failureCount > 0) {
+              alert(`Paciente deletado, mas houve falhas em ${failureCount} tabelas relacionadas. Verifique o console.`);
+          } else {
+              alert("Paciente e todos os dados relacionados deletados permanentemente.");
+          }
+          
           onBack(); // Volta para a lista
+
       } catch (error) {
-          alert("Erro ao deletar paciente: " + error.message);
+          alert("Erro fatal ao deletar paciente: " + error.message);
       } finally {
           setLoading(false);
       }
   };
+
 
   // Funções existentes (mantidas)
   const fetchEvolutions = async (id) => { /* ... */ 
@@ -253,7 +280,6 @@ const PatientDetails = ({ patientId, onBack }) => {
 
         {/* Cabeçalho do Paciente (mantido) */}
         <div className="bg-white rounded-xl shadow-sm border border-vitum-border p-6 mb-6">
-          {/* ... (código do cabeçalho) ... */}
            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center text-vitum-primary text-2xl font-bold">
@@ -397,7 +423,7 @@ const PatientDetails = ({ patientId, onBack }) => {
                        type="submit" disabled={savingEvo || !newEvo.description} 
                        className={`flex items-center gap-2 px-4 py-2 bg-vitum-primary text-white rounded-lg hover:opacity-90 transition-opacity font-medium text-sm ${savingEvo ? 'opacity-50' : ''}`}
                     >
-                      <Plus size={16} /> {savingEvo ? 'Salvando...' : 'Adicionar Sessão'}
+                      <Plus size={16} /> {savingEvo ? 'Adicionando...' : 'Adicionar Sessão'}
                     </button>
                   </div>
                 </form>
