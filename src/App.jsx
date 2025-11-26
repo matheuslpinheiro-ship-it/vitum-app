@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, PlusCircle, LayoutDashboard, LogOut, Calendar } from 'lucide-react'; // Importei Calendar
+import { Users, PlusCircle, LayoutDashboard, LogOut, Calendar, List, UserCheck, DollarSign } from 'lucide-react'; 
 import { supabase } from './supabaseClient';
 
 // Componentes
@@ -8,7 +8,10 @@ import PatientForm from "./components/PatientForm";
 import PatientList from "./components/PatientList";
 import PatientDetails from "./components/PatientDetails";
 import Dashboard from "./components/Dashboard";
-import Scheduler from "./components/Scheduler"; // Importei o Scheduler
+import Scheduler from "./components/Scheduler";
+import Staff from "./components/Staff";
+import Classes from "./components/Classes";
+import Financials from "./components/Financials"; // NOVO
 
 function App() {
   const [session, setSession] = useState(null);
@@ -23,7 +26,6 @@ function App() {
 
   const handleLogout = async () => { await supabase.auth.signOut(); };
 
-  // Lógica de navegação
   const handleSelectPatient = (id) => {
     setSelectedPatientId(id);
     setCurrentView('details');
@@ -37,7 +39,10 @@ function App() {
   const renderContent = () => {
     switch (currentView) {
       case 'dashboard': return <Dashboard onNavigate={setCurrentView} />;
-      case 'scheduler': return <Scheduler onNavigateToPatient={handleSelectPatient} />; // <--- Passando a função
+      case 'scheduler': return <Scheduler onNavigateToPatient={handleSelectPatient} />;
+      case 'staff': return <Staff />;
+      case 'classes': return <Classes />; 
+      case 'financials': return <Financials />; // NOVA ROTA
       case 'details': return selectedPatientId ? <PatientDetails patientId={selectedPatientId} onBack={handleBackToList} /> : <Dashboard onNavigate={setCurrentView} />;
       case 'form': return <PatientForm />;
       case 'list': default: return <PatientList onSelectPatient={handleSelectPatient} />;
@@ -71,9 +76,12 @@ function App() {
           </div>
           <nav className="p-4 space-y-2">
             <MenuButton id="dashboard" icon={LayoutDashboard} label="Visão Geral" />
-            <MenuButton id="scheduler" icon={Calendar} label="Agenda" /> {/* <--- NOVO BOTÃO */}
+            <MenuButton id="scheduler" icon={Calendar} label="Agenda" />
             <MenuButton id="list" icon={Users} label="Pacientes" />
             <MenuButton id="form" icon={PlusCircle} label="Novo Cadastro" />
+            <MenuButton id="staff" icon={UserCheck} label="Colaboradores" />
+            <MenuButton id="classes" icon={List} label="Turmas" />
+            <MenuButton id="financials" icon={DollarSign} label="Financeiro" /> {/* NOVO ITEM */}
           </nav>
         </div>
 
@@ -97,9 +105,14 @@ function App() {
         {/* Menu Mobile */}
         <div className="md:hidden p-4 bg-white border-b border-vitum-border flex justify-between items-center sticky top-0 z-10">
            <span className="font-bold text-xl text-vitum-dark">vitum</span>
-           <button onClick={() => setCurrentView('scheduler')} className={currentView === 'scheduler' ? "text-vitum-primary" : "text-gray-600"}><Calendar size={20}/></button>
-           <button onClick={() => setCurrentView('list')} className={currentView === 'list' ? "text-vitum-primary" : "text-gray-600"}><Users size={20}/></button>
-           <button onClick={() => setCurrentView('form')} className={currentView === 'form' ? "text-vitum-primary" : "text-gray-600"}><PlusCircle size={20}/></button>
+           <div className='flex gap-4'>
+             <button onClick={() => setCurrentView('dashboard')} className={currentView === 'dashboard' ? "text-vitum-primary" : "text-gray-600"}><LayoutDashboard size={20}/></button>
+             <button onClick={() => setCurrentView('scheduler')} className={currentView === 'scheduler' ? "text-vitum-primary" : "text-gray-600"}><Calendar size={20}/></button>
+             <button onClick={() => setCurrentView('financials')} className={currentView === 'financials' ? "text-vitum-primary" : "text-gray-600"}><DollarSign size={20}/></button> {/* NOVO ITEM MOBILE */}
+             <button onClick={() => setCurrentView('classes')} className={currentView === 'classes' ? "text-vitum-primary" : "text-gray-600"}><List size={20}/></button>
+             <button onClick={() => setCurrentView('staff')} className={currentView === 'staff' ? "text-vitum-primary" : "text-gray-600"}><UserCheck size={20}/></button>
+             <button onClick={() => setCurrentView('list')} className={currentView === 'list' ? "text-vitum-primary" : "text-gray-600"}><Users size={20}/></button>
+           </div>
         </div>
         
         {renderContent()}
@@ -107,5 +120,4 @@ function App() {
     </div>
   )
 }
-
 export default App;
